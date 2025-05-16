@@ -54,7 +54,7 @@ class ArucoDetectorNode(Node):
 
         # ArUco dictionary and detection parameters
         self.dictionary = cv2.aruco.getPredefinedDictionary(self.aruco_dict_id)
-        self.detector_params = cv2.aruco.DetectorParameters_create()
+        self.detector_params = cv2.aruco.DetectorParameters()
 
         # Camera intrinsics will be filled from /camera_info
         self.camera_matrix = None
@@ -66,6 +66,9 @@ class ArucoDetectorNode(Node):
 
         # Publisher for pose array
         self.pose_pub = self.create_publisher(PoseArray, 'aruco_poses', 10)
+
+        self.get_logger().info("ArucoDetectorNode started")
+
 
     def camera_info_callback(self, msg: CameraInfo):
         """Handles camera calibration info. Extracts K and D matrices."""
