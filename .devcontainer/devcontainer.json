@@ -1,7 +1,7 @@
 {
   "name": "ros2-marker-detection-jazzy",
   "build": {
-    "dockerfile": "Dockerfile"
+    "dockerfile": "../Dockerfile"
   },
   "runArgs": [
     "--device=/dev/video0",
