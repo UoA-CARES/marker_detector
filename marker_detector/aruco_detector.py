@@ -46,15 +46,21 @@ class ArucoDetectorNode(Node):
         self.bridge = CvBridge()
 
         # Declare and retrieve ROS parameters
-        self.declare_parameter('aruco_dict_id', 0)
         self.declare_parameter('marker_length', 0.1)
+        self.declare_parameter('aruco_dict_id', 'DICT_4X4_50')
 
-        self.aruco_dict_id = self.get_parameter('aruco_dict_id').get_parameter_value().integer_value
         self.marker_length = self.get_parameter('marker_length').get_parameter_value().double_value
+        dict_name = self.get_parameter('aruco_dict_id').get_parameter_value().string_value
+
+        try:
+            self.aruco_dict_id = getattr(cv2.aruco, dict_name)
+        except AttributeError:
+            raise ValueError(f"Invalid aruco_dict_id: {dict_name}")
+        
 
         # ArUco dictionary and detection parameters
         self.dictionary = cv2.aruco.getPredefinedDictionary(self.aruco_dict_id)
-        self.detector_params = cv2.aruco.DetectorParameters()
+        self.detector_params = cv2.aruco.DetectorParameters_create()
 
         # Camera intrinsics will be filled from /camera_info
         self.camera_matrix = None
@@ -74,8 +80,12 @@ class ArucoDetectorNode(Node):
         """Handles camera calibration info. Extracts K and D matrices."""
         self.camera_matrix = np.array(msg.k).reshape((3, 3))
         self.dist_coeffs = np.array(msg.d)
+        
+        if self.camera_info_sub is not None:
+            self.destroy_subscription(self.camera_info_sub)
+            self.camera_info_sub = None
+        
         self.get_logger().info('Received camera intrinsics. Unsubscribing from camera_info...')
-        self.camera_info_sub.destroy()  # Only need this once
 
     def image_callback(self, msg: Image):
         """Handles incoming images, detects ArUco markers, estimates pose, and publishes a PoseArray."""
@@ -83,21 +93,35 @@ class ArucoDetectorNode(Node):
             self.get_logger().warn('Camera info not received yet.')
             return
 
+        self.get_logger().debug('Received image message')
+        self.get_logger().debug(f'Image width: {msg.width}, height: {msg.height}')
         try:
+
+            if msg.data is None or len(msg.data) == 0:
+                self.get_logger().warn('Empty image data')
+                return
+            
             # Convert ROS Image message to OpenCV image
             cv_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
+            self.get_logger().debug('Finished Bridge conversion')
         except Exception as e:
             self.get_logger().error(f'Image conversion failed: {e}')
             return
 
+        gray_img = cv2.cvtColor(cv_image, cv2.COLOR_BGR2GRAY)
+        self.get_logger().debug('Converting to grayscale complete')
+        
         # Detect markers in image
-        corners, ids, _ = cv2.aruco.detectMarkers(cv_image, self.dictionary, parameters=self.detector_params)
+        corners, ids, _ = cv2.aruco.detectMarkers(gray_img, self.dictionary, parameters=self.detector_params)
+        self.get_logger().debug('Detecting markers complete')
 
         if ids is not None:
+
             # Estimate pose of each marker
             rvecs, tvecs, _ = cv2.aruco.estimatePoseSingleMarkers(
                 corners, self.marker_length, self.camera_matrix, self.dist_coeffs
             )
+            self.get_logger().debug('Pose estimation complete')
 
             pose_array = PoseArray()
             pose_array.header = msg.header  # Sync timestamp and frame ID
@@ -121,8 +145,14 @@ class ArucoDetectorNode(Node):
 
                 pose_array.poses.append(pose)
 
+                self.get_logger().debug(f'Detected marker ID: {ids[i][0]}')
+                self.get_logger().debug(f'Pose: {pose.position.x}, {pose.position.y}, {pose.position.z}')
+                self.get_logger().debug(f'Orientation: {pose.orientation.x}, {pose.orientation.y}, {pose.orientation.z}, {pose.orientation.w}')
+                self.get_logger().debug('-----------------------------------')
+
             # Publish all poses in one message
             self.pose_pub.publish(pose_array)
+            self.get_logger().debug('Published PoseArray message')
 
     def rotation_matrix_to_quaternion(self, R: np.ndarray) -> tuple:
         """Convert a rotation matrix to a quaternion (x, y, z, w)."""
