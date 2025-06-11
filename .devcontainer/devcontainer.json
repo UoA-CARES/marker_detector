@@ -1,0 +1,27 @@
+{
+  "name": "ros2-marker-detection-jazzy",
+  "build": {
+    "dockerfile": "../Dockerfile"
+  },
+  "runArgs": [
+    "--device=/dev/video0",
+    "--privileged"
+  ],
+  "mounts": [
+    "source=${localWorkspaceFolder},target=/workspace/ros2_ws/src/marker_detection,type=bind"
+  ],
+  "workspaceFolder": "/workspace/ros2_ws/src/marker_detection",
+  "postCreateCommand": "cd /workspace/ros2_ws && source /opt/ros/jazzy/setup.bash && colcon build --symlink-install",
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash"
+      },
+      "extensions": [
+        "ms-iot.vscode-ros",
+        "ms-python.python"
+      ]
+    }
+  },
+  "remoteUser": "root"
+}
