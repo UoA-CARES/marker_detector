@@ -14,6 +14,10 @@ To run the node directly with ROS 2:
 ros2 run marker_detector marker_detector_node
 ```
 
+```sh
+ros2 launch marker_detector marker_detector.launch.py
+```
+
 Or, to launch with parameters and remappings, use your launch file (see below).
 
 ## Published Topics

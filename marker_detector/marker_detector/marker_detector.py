@@ -60,6 +60,7 @@ class MarkerDetectorNode(Node):
         - /marker_poses (geometry_msgs/PoseArray): Poses of detected ArUco/STag markers
 
     Parameters:
+        - marker_type (str): Type of marker to detect ('Aruco' or 'STag')
         - dict_id (int): Marker dictionary ID (e.g. 0 = DICT_4X4_50)
         - marker_length (float): Marker size in meters
 
