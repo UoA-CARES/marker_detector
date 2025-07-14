@@ -5,7 +5,7 @@ from marker_detector.detectors.marker_detector import MarkerDetector
 
 
 class ArucoDetector(MarkerDetector):
-    def __init__(self, marker_size: float, dictionary_id=cv2.aruco.DICT_4X4_50):
+    def __init__(self, marker_size: float, dictionary_id: int = cv2.aruco.DICT_4X4_50):
         super().__init__(marker_size)
         self.dictionary = cv2.aruco.Dictionary_get(dictionary_id)
         self.aruco_params = cv2.aruco.DetectorParameters_create()

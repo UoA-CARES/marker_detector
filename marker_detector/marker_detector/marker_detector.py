@@ -6,14 +6,15 @@ from geometry_msgs.msg import Pose, TransformStamped
 from rclpy.node import Node
 from scipy.spatial.transform import Rotation as R
 from sensor_msgs.msg import CameraInfo, Image
+from std_msgs.msg import Header
 from tf2_ros import TransformBroadcaster
 
+from marker_detector.detectors.aruco_detector import ArucoDetector
+from marker_detector.detectors.stag_detector import STagDetector
 from marker_detector_interfaces.msg import Markers
 
-from marker_detector.detectors.aruco_detector import ArucoDetector
 
-
-def cv_to_pose(rvec, tvec):
+def cv_to_pose(rvec: np.ndarray, tvec: np.ndarray) -> Pose:
     pose = Pose()
     pose.position.x = float(tvec[0])
     pose.position.y = float(tvec[1])
@@ -32,9 +33,11 @@ def cv_to_pose(rvec, tvec):
     return pose
 
 
-def pose_to_transform(msg, marker_id, pose):
+def pose_to_transform(
+    header: Header, marker_id: np.ndarray, pose: Pose
+) -> TransformStamped:
     t = TransformStamped()
-    t.header = msg.header
+    t.header = header
     t.child_frame_id = f"marker_{marker_id[0]}"
 
     t.transform.translation.x = pose.position.x
@@ -44,9 +47,9 @@ def pose_to_transform(msg, marker_id, pose):
     return t
 
 
-class ArucoDetectorNode(Node):
+class MarkerDetectorNode(Node):
     """
-    A ROS 2 node that detects ArUco markers in incoming camera images and
+    A ROS 2 node that detects ArUco/Stag markers in incoming camera images and
     publishes their 3D poses as a geometry_msgs/PoseArray message.
 
     Subscriptions:
@@ -54,7 +57,7 @@ class ArucoDetectorNode(Node):
         - /camera/camera_info (sensor_msgs/CameraInfo): Camera intrinsics
 
     Publications:
-        - /aruco_poses (geometry_msgs/PoseArray): Poses of detected ArUco markers
+        - /marker_poses (geometry_msgs/PoseArray): Poses of detected ArUco/STag markers
 
     Parameters:
         - dict_id (int): Marker dictionary ID (e.g. 0 = DICT_4X4_50)
@@ -64,8 +67,8 @@ class ArucoDetectorNode(Node):
     --------------------------------
     Node(
         package='your_package',
-        executable='aruco_detector_node',
-        name='aruco_detector',
+        executable='marker_detector_node',
+        name='marker_detector',
         parameters=[
             {'marker_type': 'Aruco'},
             {'dict_id': 0},
@@ -79,7 +82,7 @@ class ArucoDetectorNode(Node):
     """
 
     def __init__(self):
-        super().__init__("aruco_detector_node")
+        super().__init__("marker_detector_node")
 
         self.bridge = CvBridge()
 
@@ -96,9 +99,21 @@ class ArucoDetectorNode(Node):
         )
         dict_id = self.get_parameter("dict_id").get_parameter_value().integer_value
 
-        self.marker_detector = ArucoDetector(
-            marker_size=marker_size, dictionary_id=dict_id
-        )
+        if marker_type == "Aruco":
+            self.get_logger().info("Using ArucoDetector")
+            self.marker_detector = ArucoDetector(
+                marker_size=marker_size, dictionary_id=dict_id
+            )
+        elif marker_type == "STag":
+            self.get_logger().info("Using STagDetector")
+            self.marker_detector = STagDetector(
+                marker_size=marker_size, library_hd=dict_id
+            )
+        else:
+            self.get_logger().error(
+                f"Unsupported marker type: {marker_type}. Supported types are 'Aruco' and 'STag'."
+            )
+            raise ValueError(f"Unsupported marker type: {marker_type}")
 
         # Camera intrinsics will be filled from /camera_info
         self.camera_matrix = None
@@ -117,7 +132,7 @@ class ArucoDetectorNode(Node):
 
         self.tf_broadcaster = TransformBroadcaster(self)
 
-        self.get_logger().info("ArucoDetectorNode started")
+        self.get_logger().info("MarkerDetectorNode started")
 
     def camera_info_callback(self, msg: CameraInfo):
         self.camera_matrix = np.array(msg.k).reshape((3, 3))
@@ -182,7 +197,7 @@ class ArucoDetectorNode(Node):
                 pose_array.poses.append(pose)
 
                 # Publish the transform for each marker
-                marker_transform = pose_to_transform(msg, marker_id, pose)
+                marker_transform = pose_to_transform(msg.header, marker_id, pose)
                 self.tf_broadcaster.sendTransform(marker_transform)
 
                 self.get_logger().debug(f"Detected marker ID: {marker_id[0]}")
@@ -201,7 +216,7 @@ class ArucoDetectorNode(Node):
 
 def main(args=None):
     rclpy.init(args=args)
-    node = ArucoDetectorNode()
+    node = MarkerDetectorNode()
     rclpy.spin(node)
     node.destroy_node()
     rclpy.shutdown()
