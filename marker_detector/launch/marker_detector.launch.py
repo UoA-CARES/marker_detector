@@ -27,10 +27,17 @@ def generate_launch_description():
         description="Marker size in meters",
     )
 
+    declare_camera_name = DeclareLaunchArgument(
+        "camera_name",
+        default_value="camera",
+        description="Name of the camera topic (default: 'camera')",
+    )
+
     namespace = LaunchConfiguration(declare_namespace.name)
     marker_type = LaunchConfiguration(declare_marker_type.name)
     dict_id = LaunchConfiguration(declare_dict_id.name)
     marker_size = LaunchConfiguration(declare_marker_size.name)
+    camera_name = LaunchConfiguration(declare_camera_name.name)
 
     return LaunchDescription(
         [
@@ -38,6 +45,7 @@ def generate_launch_description():
             declare_marker_type,
             declare_dict_id,
             declare_marker_size,
+            declare_camera_name,
             Node(
                 package="marker_detector",
                 executable="marker_detector_node",
@@ -49,6 +57,7 @@ def generate_launch_description():
                         declare_marker_type.name: marker_type,
                         declare_dict_id.name: dict_id,
                         declare_marker_size.name: marker_size,
+                        declare_camera_name.name: camera_name,
                     }
                 ],
             ),

@@ -63,6 +63,7 @@ class MarkerDetectorNode(Node):
         - marker_type (str): Type of marker to detect ('Aruco' or 'STag')
         - dict_id (int): Marker dictionary ID (e.g. 0 = DICT_4X4_50)
         - marker_length (float): Marker size in meters
+        - camera_name (str): Name of the camera topic (default: 'camera')
 
     Launch file usage (Python-style):
     --------------------------------
@@ -74,6 +75,7 @@ class MarkerDetectorNode(Node):
             {'marker_type': 'Aruco'},
             {'dict_id': 0},
             {'marker_size': 0.1}
+            {'camera_name': 'camera'}
         ],
         remappings=[
             ('/camera/image_raw', '/your_camera/image_raw'),
@@ -91,6 +93,7 @@ class MarkerDetectorNode(Node):
         self.declare_parameter("marker_type", "Aruco")
         self.declare_parameter("marker_size", 0.1)
         self.declare_parameter("dict_id", 0)
+        self.declare_parameter("camera_name", "camera")
 
         marker_type = (
             self.get_parameter("marker_type").get_parameter_value().string_value
@@ -99,6 +102,9 @@ class MarkerDetectorNode(Node):
             self.get_parameter("marker_size").get_parameter_value().double_value
         )
         dict_id = self.get_parameter("dict_id").get_parameter_value().integer_value
+        camera_name = (
+            self.get_parameter("camera_name").get_parameter_value().string_value
+        )
 
         if marker_type == "Aruco":
             self.get_logger().info("Using ArucoDetector")
@@ -122,10 +128,10 @@ class MarkerDetectorNode(Node):
 
         # Subscribers for image and camera calibration
         self.image_sub = self.create_subscription(
-            Image, "camera/image_raw", self.image_callback, 10
+            Image, f"{camera_name}/image_color", self.image_callback, 10
         )
         self.camera_info_sub = self.create_subscription(
-            CameraInfo, "camera/camera_info", self.camera_info_callback, 10
+            CameraInfo, f"{camera_name}/camera_info", self.camera_info_callback, 10
         )
 
         # Publisher for pose array

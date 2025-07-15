@@ -39,6 +39,7 @@ Or, to launch with parameters and remappings, use your launch file (see below).
 | `marker_type`  | string | Marker Type - Aruco or STag | `"Aruco"` |
 | `dict_id`  | int | Marker dictionary name | 0 = `"DICT_4X4_50"` |
 | `marker_length`  | float  | Marker side length in meters (e.g., 0.1)                       | `0.1`           |
+| `camera_name`  | str  | Name of the camera to subscribe too                       | `camera`           |
 ---
 
 ## Launch Example
@@ -61,6 +62,7 @@ def generate_launch_description():
                 {'marker_type': 'Aruco'},
                 {'dict_id': 0},
                 {'marker_size': 0.1}
+                {'camera_name': 'camera'}
             ],
             remappings=[
                 ('/camera/image_raw', '/your_camera/image_raw'),
