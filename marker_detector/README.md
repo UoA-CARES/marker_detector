@@ -2,11 +2,18 @@
 
 A lightweight ROS 2 package for detecting ArUco and STag markers in camera streams. The main functionality is provided by the `MarkerDetectorNode`, which detects markers in real time, estimates their poses using camera intrinsics, and publishes the results as a `Markers`.
 
+# Installation Instructions
+`git clone`the repository into your desired ros2 workspace directory on your local machine.
+
+Run `pip3 install -r requirements' in the **root directory** of this package.
+
+`colcon build` your ros2 workspace.
+
 # Node: `MarkerDetectorNode`
 
 The `MarkerDetectorNode` subscribes to a camera stream (`/camera/image_raw`) and calibration data (`/camera/camera_info`), detects markers in the image, estimates each marker's 3D pose, and publishes the results via topic and transforms.
 
-### How to Run
+## Usage
 
 To run the node directly with ROS 2:
 
